@@ -16,13 +16,17 @@ const numSearchResultsReturned = 20
 
 // SetupAPI adds the API routes to the provided router
 func SetupAPI(r web.Router, db *sql.DB) {
-    r.HandleRoute([]string{web.GET}, "/groups",
+    r.HandleRoute([]string{web.GET}, "/search",
                   []string{"term"},
                   []string{},
-                  GetSearchResults, db)
+                  GetSearch, db)
+    r.HandleRoute([]string{web.GET}, "/group",
+                  []string{"name"},
+                  []string{},
+                  GetGroup, db)
 }
 
-func GetSearchResults(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) {
+func GetSearch(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) {
     var err error
     defer func() {
         if err != nil {
@@ -73,6 +77,30 @@ func GetSearchResults(w http.ResponseWriter, q map[string]string, b string, db *
     groups, err := models.GetGroupsFromRows(rows)
     if err != nil { return }
     res, err := json.Marshal(groups)
+    if err != nil { return }
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(res)
+}
+
+func GetGroup(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) {
+    var err error
+    defer func() {
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
+    }()
+
+    query := `SELECT `+models.GroupSQLColumns+` FROM Groups WHERE Name=$1`
+    rows, err := db.Query(query, q["name"])
+    if err != nil { return }
+    groups, err := models.GetGroupsFromRows(rows)
+    if err != nil { return }
+    if len(groups) == 0 {
+        http.Error(w, "Group not found", http.StatusBadRequest)
+        return
+    }
+    g := groups[0]
+    res, err := json.Marshal(g)
     if err != nil { return }
     w.Header().Set("Content-Type", "application/json")
     w.Write(res)
