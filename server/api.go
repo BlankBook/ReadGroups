@@ -26,7 +26,7 @@ func SetupAPI(r web.Router, db *sql.DB) {
                   GetGroup, db)
 }
 
-func GetSearch(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) {
+func GetSearch(w http.ResponseWriter, q map[string][]string, b string, db *sql.DB) {
     var err error
     defer func() {
         if err != nil {
@@ -34,7 +34,7 @@ func GetSearch(w http.ResponseWriter, q map[string]string, b string, db *sql.DB)
         }
     }()
 
-    term := q["term"]
+    term := q["term"][0]
     if len(term) > maxSearchTermLen {
         http.Error(w, fmt.Sprintf("Exceeded max term length of %d", maxSearchTermLen),
                    http.StatusBadRequest)
@@ -82,7 +82,7 @@ func GetSearch(w http.ResponseWriter, q map[string]string, b string, db *sql.DB)
     w.Write(res)
 }
 
-func GetGroup(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) {
+func GetGroup(w http.ResponseWriter, q map[string][]string, b string, db *sql.DB) {
     var err error
     defer func() {
         if err != nil {
@@ -91,7 +91,7 @@ func GetGroup(w http.ResponseWriter, q map[string]string, b string, db *sql.DB) 
     }()
 
     query := `SELECT `+models.GroupSQLColumns+` FROM Groups WHERE Name=$1`
-    rows, err := db.Query(query, q["name"])
+    rows, err := db.Query(query, q["name"][0])
     if err != nil { return }
     groups, err := models.GetGroupsFromRows(rows)
     if err != nil { return }
